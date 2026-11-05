@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#11151d">
+<meta name="description" content="Apex Legends S31 Split 1のマップローテーション確認ツール。現在のマップ、次の切り替えまでの時間、日時指定でのマップを確認できます。">
+<title>Apex S31 Split 1 Map Rotation</title>
+<style>
+:root {
+  --site-primary: #f0643e;
+  --site-on-primary: #20100b;
+  --site-secondary: #283246;
+  --site-on-secondary: #f2f5fa;
+  --site-background: #11151d;
+  --site-on-background: #f2f5fa;
+  --site-font-body: Inter, "Segoe UI", "Noto Sans JP", sans-serif;
+  --site-font-heading: Inter, "Segoe UI", "Noto Sans JP", sans-serif;
+  --site-heading-scale: 1;
+  --site-spacing-scale: 1;
+  --site-radius-scale: 1;
+  --site-decoration-opacity: 1;
+  color-scheme: light dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--site-font-body); background: var(--site-background); color: var(--site-on-background); }
+#app { min-height: 100vh; width: 100%; background-color: var(--site-background); color: var(--site-on-background); padding: calc(28px * var(--site-spacing-scale)) 20px 36px; }
+main { width: min(760px, 100%); margin: 0 auto; }
+.topline { display:flex; justify-content:space-between; align-items:center; gap:12px; color:#a8b2c4; font-size:11px; letter-spacing:1.8px; font-weight:800; }
+.brand { display:flex; align-items:center; gap:9px; }
+.mark { width:24px; height:24px; border:2px solid var(--site-primary); transform:rotate(45deg); position:relative; }
+.mark:after { content:""; position:absolute; inset:5px; background:var(--site-primary); }
+.season { border:1px solid #394356; padding:6px 9px; border-radius:999px; letter-spacing:1px; }
+h1 { font-size:calc(36px * var(--site-heading-scale)); line-height:1.08; letter-spacing:-1.6px; margin:22px 0 8px; font-weight:900; }
+.lead { color:#a8b2c4; font-size:14px; line-height:1.7; margin:0; }
+.live-card { margin-top:26px; border:1px solid #30394a; border-radius:calc(18px * var(--site-radius-scale)); overflow:hidden; background:#1a202c; box-shadow:0 20px 60px #0002; }
+.hero { padding:25px 25px 24px; background:linear-gradient(120deg,#562d2a 0%,#2a3042 55%,#202839 100%); position:relative; overflow:hidden; }
+.hero:after { content:"APEX"; position:absolute; right:12px; bottom:-25px; font-size:100px; font-weight:1000; letter-spacing:-8px; color:#fff; opacity:calc(.035 * var(--site-decoration-opacity)); pointer-events:none; }
+.status { color:#ffb69e; font-size:11px; letter-spacing:1.7px; font-weight:900; }
+.mapname { margin:12px 0 10px; font-size:clamp(31px,7vw,52px); font-weight:950; letter-spacing:-2px; line-height:1.05; position:relative; z-index:1; }
+.period { color:#d5dbe5; font-size:13px; }
+.timer-wrap { padding:22px 25px 24px; }
+.label { color:#9ba8bc; font-size:11px; letter-spacing:1px; font-weight:800; }
+.timer { font-size:clamp(38px,8vw,56px); font-variant-numeric:tabular-nums; font-weight:900; letter-spacing:-2px; line-height:1.2; margin:7px 0 17px; }
+.next { display:flex; justify-content:space-between; align-items:center; gap:12px; border-top:1px solid #30394a; padding-top:15px; }
+.next-map { font-size:18px; font-weight:850; margin-top:4px; }
+.next-at { text-align:right; color:#a8b2c4; font-size:12px; line-height:1.6; }
+.section { margin-top:20px; padding:20px; border:1px solid #30394a; border-radius:calc(14px * var(--site-radius-scale)); background:#1a202c; }
+.section h2 { margin:0 0 14px; font-size:15px; font-weight:850; }
+input { display:block; width:100%; min-height:46px; padding:11px 12px; border-radius:9px; border:1px solid #465168; background:#111722; color:#f2f5fa; font:inherit; font-size:14px; }
+.actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+button { padding:11px 15px; border:1px solid #485267; border-radius:9px; background:#283246; color:#f2f5fa; font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
+button.primary { background:var(--site-primary); border-color:var(--site-primary); color:var(--site-on-primary); }
+button:hover { filter:brightness(1.1); }
+button:focus-visible,input:focus-visible { outline:2px solid #ffb69e; outline-offset:2px; }
+.result { margin-top:14px; padding:15px; border-radius:10px; border:1px solid #394356; background:#111722; }
+.result[hidden] { display:none; }
+.result-map { font-size:24px; font-weight:900; margin:6px 0; }
+.result-detail { color:#a8b2c4; font-size:12px; line-height:1.8; }
+.cycle { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
+.cycle-item { border:1px solid #394356; border-radius:10px; background:#111722; padding:13px 8px; text-align:center; }
+.cycle-num { color:var(--site-primary); font-size:10px; font-weight:900; letter-spacing:1px; }
+.cycle-map { font-size:12px; font-weight:850; margin-top:7px; }
+.foot { color:#8d9ab0; font-size:11px; line-height:1.8; margin:16px 2px 0; }
+@media(max-width:480px) { #app { padding:22px 13px 28px; } .hero,.timer-wrap { padding-left:18px; padding-right:18px; } .section { padding:16px; } h1 { font-size:32px; } }
+</style>
+</head>
+<body>
+<div id="app">
+<main>
+  <div class="topline"><div class="brand"><span class="mark" aria-hidden="true"></span><span>RANKED ROTATION TRACKER</span></div><span class="season">S31 · SPLIT 1</span></div>
+  <h1>MAP ROTATION</h1>
+  <p class="lead">今のマップと、次の切り替わりまでの時間をひと目で。<br>日時を指定して、過去・未来のローテーションもチェック。</p>
+  <section class="live-card" aria-live="polite">
+    <div class="hero"><div class="status">● CURRENT MAP</div><div class="mapname" id="current-map">Storm Point</div><div class="period" id="current-range">--:-- ～ --:--</div></div>
+    <div class="timer-wrap"><div class="label">NEXT MAP IN</div><div class="timer" id="countdown">--:--:--</div><div class="next"><div><div class="label">NEXT MAP</div><div class="next-map" id="next-map">E-District</div></div><div class="next-at" id="next-time">切り替え時刻 --:--</div></div></div>
+  </section>
+  <section class="section"><h2>日時を指定して確認</h2><input id="datetime" type="datetime-local" step="60" aria-label="確認したい日時"><div class="actions"><button class="primary" id="check-date">この日時のマップを見る</button><button id="back-now">現在時刻に戻す</button></div><div class="result" id="date-result" hidden><div class="label">MAP AT SELECTED TIME</div><div class="result-map" id="date-map"></div><div class="result-detail" id="date-detail"></div></div></section>
+  <section class="section"><h2>ローテーション順</h2><div class="cycle"><div class="cycle-item"><div class="cycle-num">01</div><div class="cycle-map">Storm Point</div></div><div class="cycle-item"><div class="cycle-num">02</div><div class="cycle-map">E-District</div></div><div class="cycle-item"><div class="cycle-num">03</div><div class="cycle-map">Broken Moon</div></div></div></section>
+  <p class="foot">基準日時：2026/11/04 03:00 JST · 切り替え間隔：4時間30分<br>ストームポイント → Eディストリクト → ブロークンムーン<br>※指定されたスケジュールをもとに計算しています。ゲーム内の変更は自動取得しません。</p>
+</main>
+</div>
+<script>
+(() => {
+  const maps = ['Storm Point', 'E-District', 'Broken Moon'];
+  const namesJa = ['ストームポイント', 'Eディストリクト', 'ブロークンムーン'];
+  const interval = 4.5 * 60 * 60 * 1000;
+  const anchor = new Date('2026-11-04T03:00:00+09:00').getTime();
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, '0');
+  const dateText = d => `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const timeText = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  function rotation(t) {
+    const cycle = Math.floor((t - anchor) / interval);
+    const index = ((cycle % 3) + 3) % 3;
+    const start = anchor + cycle * interval;
+    const end = start + interval;
+    return { index, next: (index + 1) % 3, start: new Date(start), end: new Date(end), remaining: end - t };
+  }
+  function duration(ms) {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    return `${pad(Math.floor(s/3600))}:${pad(Math.floor((s%3600)/60))}:${pad(s%60)}`;
+  }
+  function updateLive() {
+    const state = rotation(Date.now());
+    $('current-map').textContent = maps[state.index];
+    $('current-range').textContent = `${dateText(state.start)} ～ ${timeText(state.end)}`;
+    $('countdown').textContent = duration(state.remaining);
+    $('next-map').textContent = maps[state.next];
+    $('next-time').innerHTML = `切り替え<br>${dateText(state.end)}`;
+  }
+  function checkDate() {
+    const raw = $('datetime').value;
+    if (!raw) return;
+    const t = new Date(raw).getTime();
+    if (!Number.isFinite(t)) return;
+    const state = rotation(t);
+    $('date-result').hidden = false;
+    $('date-map').textContent = maps[state.index];
+    $('date-detail').textContent = `${namesJa[state.index]} · 時間帯 ${dateText(state.start)} ～ ${dateText(state.end)} · 次は${namesJa[state.next]} · 切り替えまで ${duration(state.remaining)}`;
+  }
+  function backNow() {
+    const now = new Date();
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+    $('datetime').value = local.toISOString().slice(0,16);
+    $('date-result').hidden = true;
+    updateLive();
+  }
+  $('check-date').addEventListener('click', checkDate);
+  $('back-now').addEventListener('click', backNow);
+  $('datetime').addEventListener('change', checkDate);
+  backNow();
+  setInterval(updateLive, 1000);
+})();
+</script>
+</body>
+</html>
