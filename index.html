@@ -76,26 +76,39 @@ button:focus-visible,input:focus-visible { outline:2px solid #ffb69e; outline-of
     <div class="timer-wrap"><div class="label">NEXT MAP IN</div><div class="timer" id="countdown">--:--:--</div><div class="next"><div><div class="label">NEXT MAP</div><div class="next-map" id="next-map">E-District</div></div><div class="next-at" id="next-time">切り替え時刻 --:--</div></div></div>
   </section>
   <section class="section"><h2>日時を指定して確認</h2><input id="datetime" type="datetime-local" step="60" aria-label="確認したい日時"><div class="actions"><button class="primary" id="check-date">この日時のマップを見る</button><button id="back-now">現在時刻に戻す</button></div><div class="result" id="date-result" hidden><div class="label">MAP AT SELECTED TIME</div><div class="result-map" id="date-map"></div><div class="result-detail" id="date-detail"></div></div></section>
-  <section class="section"><h2>ローテーション順</h2><div class="cycle"><div class="cycle-item"><div class="cycle-num">01</div><div class="cycle-map">Storm Point</div></div><div class="cycle-item"><div class="cycle-num">02</div><div class="cycle-map">E-District</div></div><div class="cycle-item"><div class="cycle-num">03</div><div class="cycle-map">Broken Moon</div></div></div></section>
-  <p class="foot">基準日時：2026/11/04 03:00 JST · 切り替え間隔：4時間30分<br>ストームポイント → Eディストリクト → ブロークンムーン<br>※指定されたスケジュールをもとに計算しています。ゲーム内の変更は自動取得しません。</p>
+  <section class="section"><h2>ローテーション順</h2><div class="cycle"><div class="cycle-item"><div class="cycle-num">01</div><div class="cycle-map">E-District</div></div><div class="cycle-item"><div class="cycle-num">02</div><div class="cycle-map">Broken Moon</div></div><div class="cycle-item"><div class="cycle-num">03</div><div class="cycle-map">Storm Point</div></div></div></section>
+  <p class="foot">変更後の基準日時：2026/11/19 03:00 JST · 切り替え間隔：4時間30分<br>Eディストリクト → ブロークンムーン → ストームポイント<br>※11/19 03:00以降は変更後のローテーション、変更前の日時は旧ローテーションで計算します。ゲーム内の変更は自動取得しません。</p>
 </main>
 </div>
 <script>
 (() => {
-  const maps = ['Storm Point', 'E-District', 'Broken Moon'];
-  const namesJa = ['ストームポイント', 'Eディストリクト', 'ブロークンムーン'];
   const interval = 4.5 * 60 * 60 * 1000;
-  const anchor = new Date('2026-11-04T03:00:00+09:00').getTime();
+  const oldSchedule = {
+    maps: ['Storm Point', 'E-District', 'Broken Moon'],
+    namesJa: ['ストームポイント', 'Eディストリクト', 'ブロークンムーン'],
+    anchor: new Date('2026-11-04T03:00:00+09:00').getTime()
+  };
+  const newSchedule = {
+    maps: ['E-District', 'Broken Moon', 'Storm Point'],
+    namesJa: ['Eディストリクト', 'ブロークンムーン', 'ストームポイント'],
+    anchor: new Date('2026-11-19T03:00:00+09:00').getTime()
+  };
   const $ = id => document.getElementById(id);
   const pad = n => String(n).padStart(2, '0');
   const dateText = d => `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const timeText = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   function rotation(t) {
-    const cycle = Math.floor((t - anchor) / interval);
+    // 11/19 03:00 JSTを境に新ローテへ切り替え、過去日時は旧ローテで計算する。
+    const schedule = t < newSchedule.anchor ? oldSchedule : newSchedule;
+    const cycle = Math.floor((t - schedule.anchor) / interval);
     const index = ((cycle % 3) + 3) % 3;
-    const start = anchor + cycle * interval;
+    const start = schedule.anchor + cycle * interval;
     const end = start + interval;
-    return { index, next: (index + 1) % 3, start: new Date(start), end: new Date(end), remaining: end - t };
+    return {
+      index, next: (index + 1) % 3,
+      maps: schedule.maps, namesJa: schedule.namesJa,
+      start: new Date(start), end: new Date(end), remaining: end - t
+    };
   }
   function duration(ms) {
     const s = Math.max(0, Math.floor(ms / 1000));
@@ -103,10 +116,10 @@ button:focus-visible,input:focus-visible { outline:2px solid #ffb69e; outline-of
   }
   function updateLive() {
     const state = rotation(Date.now());
-    $('current-map').textContent = maps[state.index];
+    $('current-map').textContent = state.maps[state.index];
     $('current-range').textContent = `${dateText(state.start)} ～ ${timeText(state.end)}`;
     $('countdown').textContent = duration(state.remaining);
-    $('next-map').textContent = maps[state.next];
+    $('next-map').textContent = state.maps[state.next];
     $('next-time').innerHTML = `切り替え<br>${dateText(state.end)}`;
   }
   function checkDate() {
@@ -116,8 +129,8 @@ button:focus-visible,input:focus-visible { outline:2px solid #ffb69e; outline-of
     if (!Number.isFinite(t)) return;
     const state = rotation(t);
     $('date-result').hidden = false;
-    $('date-map').textContent = maps[state.index];
-    $('date-detail').textContent = `${namesJa[state.index]} · 時間帯 ${dateText(state.start)} ～ ${dateText(state.end)} · 次は${namesJa[state.next]} · 切り替えまで ${duration(state.remaining)}`;
+    $('date-map').textContent = state.maps[state.index];
+    $('date-detail').textContent = `${state.namesJa[state.index]} · 時間帯 ${dateText(state.start)} ～ ${dateText(state.end)} · 次は${state.namesJa[state.next]} · 切り替えまで ${duration(state.remaining)}`;
   }
   function backNow() {
     const now = new Date();
